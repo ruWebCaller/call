@@ -2,35 +2,81 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Вход через Telegram</title>
+    <title>ruWebCaller Auth</title>
 </head>
 <body>
 
-    <h2>Авторизация на сайте</h2>
+    <h2>Авторизация ruWebCaller</h2>
     
-    <!-- Кнопка авторизации Telegram -->
-    <script async 
-            src="https://telegram.org" 
-            data-telegram-login="ruwebcaller_bot" 
-            data-size="large" 
-            data-onauth="onTelegramAuth(user)" 
-            data-request-access="write">
-    </script>
+    <!-- Кнопка входа. Замените ВАШ_CLIENT_ID на ID из панели Яндекса -->
+    <a id="login-btn" href="https://yandex.ru" 
+       style="display:inline-block; background:#ffcc00; color:#000; padding:12px 24px; text-decoration:none; border-radius:8px; font-weight:bold; font-family:sans-serif;">
+       Войти с Яндекс ID
+    </a>
+
+    <!-- Блок профиля (изначально скрыт) -->
+    <div id="profile" style="display:none; font-family:sans-serif; margin-top:20px;">
+        <img id="user-avatar" src="" alt="Аватар" style="width:80px; height:80px; border-radius:50%; display:block; margin-bottom:10px;">
+        <h3 id="user-name">Привет!</h3>
+        <p>Ваш логин в Яндексе: <span id="user-login" style="font-weight:bold;"></span></p>
+    </div>
 
     <script>
-        // Функция, которая сработает СРАЗУ после успешного входа
-        function onTelegramAuth(user) {
-            console.log("Данные пользователя получены:", user);
+        function checkYandexAuth() {
+            const hash = window.location.hash;
             
-            // Выводим приветствие на экран без перезагрузки и серверов
-            alert(`Привет, ${user.first_name}! Твой Telegram ID: ${user.id}`);
-            
-            // Сохраняем пользователя в локальную память браузера (чтобы не разлогинивался)
-            localStorage.setItem('user_id', user.id);
-            localStorage.setItem('user_name', user.first_name);
-            
-            // Здесь вы можете разрешить пользователю пользоваться вашим сайтом
+            if (hash.includes('access_token')) {
+                // Вытаскиваем токен из хэша адресной строки
+                const params = new URLSearchParams(hash.replace('#', '?'));
+                const token = params.get('access_token');
+                
+                // Делаем прямой запрос в Яндекс за данными профиля с помощью токена
+                fetch('https://yandex.ru', {
+                    headers: { 'Authorization': 'OAuth ' + token }
+                })
+                .then(response => response.json())
+                .then(user => {
+                    console.log("Данные успешно получены:", user);
+                    
+                    // Скрываем кнопку входа и показываем профиль
+                    document.getElementById('login-btn').style.display = 'none';
+                    document.getElementById('profile').style.display = 'block';
+                    
+                    // Заполняем данные на странице
+                    document.getElementById('user-name').innerText = "Привет, " + user.first_name + " " + user.last_name + "!";
+                    document.getElementById('user-login').innerText = user.login;
+                    
+                    // Если у пользователя есть аватарка, подставляем её (размер 100x100)
+                    if (user.default_avatar_id) {
+                        document.getElementById('user-avatar').src = `https://yandex.net{user.default_avatar_id}/islands-200`;
+                    } else {
+                        // Заглушка, если аватарки нет
+                        document.getElementById('user-avatar').src = 'https://yandex.net';
+                    }
+                    
+                    // Сохраняем логин пользователя локально, чтобы не заставлять его входить снова при перезагрузке
+                    localStorage.setItem('ruwebcaller_user', user.login);
+                    
+                    // Стираем токен из адресной строки для безопасности и красоты
+                    window.location.hash = '';
+                })
+                .catch(err => console.error("Ошибка запроса к Яндекс ID:", err));
+            } else {
+                // Если токена в URL нет, проверяем, входил ли пользователь ранее
+                const savedUser = localStorage.getItem('ruwebcaller_user');
+                if (savedUser) {
+                    document.getElementById('login-btn').style.display = 'none';
+                    document.getElementById('profile').style.display = 'block';
+                    document.getElementById('user-name').innerText = "С возвращением!";
+                    document.getElementById('user-login').innerText = savedUser;
+                    // Для полной отрисовки аватарки при повторном входе токен нужно сохранять тоже, 
+                    // либо привязать полноценную бд, но для базового теста пойдет и так.
+                }
+            }
         }
+
+        // Запускаем проверку скрипта сразу при загрузке страницы
+        window.onload = checkYandexAuth;
     </script>
 
 </body>
