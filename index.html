@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Вход через Telegram</title>
+</head>
+<body>
+
+    <h2>Авторизация на сайте</h2>
+    
+    <!-- Кнопка авторизации Telegram -->
+    <script async 
+            src="https://telegram.org" 
+            data-telegram-login="ИМЯ_ВАШЕГО_БОТА" 
+            data-size="large" 
+            data-onauth="onTelegramAuth(user)" 
+            data-request-access="write">
+    </script>
+
+    <script>
+        // Функция, которая сработает СРАЗУ после успешного входа
+        function onTelegramAuth(user) {
+            console.log("Данные пользователя получены:", user);
+            
+            // Выводим приветствие на экран без перезагрузки и серверов
+            alert(`Привет, ${user.first_name}! Твой Telegram ID: ${user.id}`);
+            
+            // Сохраняем пользователя в локальную память браузера (чтобы не разлогинивался)
+            localStorage.setItem('user_id', user.id);
+            localStorage.setItem('user_name', user.first_name);
+            
+            // Здесь вы можете разрешить пользователю пользоваться вашим сайтом
+        }
+    </script>
+
+</body>
+</html>
